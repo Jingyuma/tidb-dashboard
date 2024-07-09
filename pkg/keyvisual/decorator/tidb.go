@@ -19,11 +19,12 @@ import (
 )
 
 // TiDBLabelStrategy implements the LabelStrategy interface. It obtains Label Information from TiDB.
-func TiDBLabelStrategy(lc fx.Lifecycle, wg *sync.WaitGroup, etcdClient *clientv3.Client, tidbClient *tidb.Client) LabelStrategy {
+func TiDBLabelStrategy(lc fx.Lifecycle, wg *sync.WaitGroup, etcdClient *clientv3.Client, tidbClient *tidb.Client, getTableIDs func() map[int64]struct{}) LabelStrategy {
 	s := &tidbLabelStrategy{
 		EtcdClient:    etcdClient,
 		tidbClient:    tidbClient,
 		SchemaVersion: -1,
+		getTableIDs:   getTableIDs,
 	}
 
 	lc.Append(fx.Hook{
@@ -55,6 +56,9 @@ type tidbLabelStrategy struct {
 	tidbClient    *tidb.Client
 	SchemaVersion int64
 	TidbAddress   []string
+
+	getTableIDs                  func() map[int64]struct{}
+	dbTableInfosEndpointNotFound bool
 }
 
 type tidbLabeler struct {

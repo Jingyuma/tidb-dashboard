@@ -72,3 +72,9 @@ func (t *TableInfo) GetPartitionInfo() *PartitionInfo {
 	}
 	return nil
 }
+
+// DBTableInfo provides meta data describing a DB table with db info.
+type DBTableInfo struct {
+	DBInfo    *DBInfo    `json:"db_info"`
+	TableInfo *TableInfo `json:"table_info"`
+}

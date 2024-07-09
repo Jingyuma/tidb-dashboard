@@ -28,6 +28,7 @@ import (
 	"github.com/pingcap/tidb-dashboard/pkg/keyvisual/storage"
 	"github.com/pingcap/tidb-dashboard/pkg/pd"
 	"github.com/pingcap/tidb-dashboard/pkg/tidb"
+	"github.com/pingcap/tidb-dashboard/pkg/tidb/model"
 	"github.com/pingcap/tidb-dashboard/pkg/utils"
 )
 
@@ -73,6 +74,8 @@ type Service struct {
 	stat          *storage.Stat
 	strategy      *matrix.Strategy
 	labelStrategy decorator.LabelStrategy
+
+	keyBuffer model.KeyInfoBuffer
 }
 
 // FIXME: Simplify these things.
@@ -159,7 +162,7 @@ func (s *Service) newLabelStrategy(
 	switch s.keyVisualCfg.Policy {
 	case config.KeyVisualDBPolicy:
 		log.Debug("New LabelStrategy", zap.String("policy", s.keyVisualCfg.Policy))
-		return decorator.TiDBLabelStrategy(lc, wg, etcdClient, tidbClient)
+		return decorator.TiDBLabelStrategy(lc, wg, etcdClient, tidbClient, s.getTableIDs)
 	case config.KeyVisualKVPolicy:
 		log.Debug("New LabelStrategy", zap.String("policy", s.keyVisualCfg.Policy),
 			zap.String("separator", s.keyVisualCfg.PolicyKVSeparator))
@@ -167,6 +170,23 @@ func (s *Service) newLabelStrategy(
 	default:
 		panic("unreachable")
 	}
+}
+
+func (s *Service) getTableIDs() map[int64]struct{} {
+	keys := s.stat.Keys()
+	tableIDs := make(map[int64]struct{}, len(keys))
+	for _, key := range keys {
+		keyBytes := region.Bytes(key)
+		keyInfo, err := s.keyBuffer.DecodeKey(keyBytes)
+		if err != nil {
+			continue
+		}
+		isMeta, tableID := keyInfo.MetaOrTable()
+		if !isMeta {
+			tableIDs[tableID] = struct{}{}
+		}
+	}
+	return tableIDs
 }
 
 func (s *Service) newProvider(pdClient *pd.Client) *region.DataProvider {

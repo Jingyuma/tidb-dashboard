@@ -28,6 +28,15 @@ func (km *KeyMap) SaveKeys(keys []string) {
 	}
 }
 
+// Keys returns all strings interned in KeyMap without using mutex.
+func (km *KeyMap) Keys() (keys []string) {
+	km.Map.Range(func(key, value any) bool {
+		keys = append(keys, key.(string))
+		return true
+	})
+	return
+}
+
 func equal(keyA, keyB string) bool {
 	pA := (*reflect.StringHeader)(unsafe.Pointer(&keyA)) // #nosec
 	pB := (*reflect.StringHeader)(unsafe.Pointer(&keyB)) // #nosec

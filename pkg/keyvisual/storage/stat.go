@@ -294,3 +294,10 @@ func (s *Stat) Range(startTime, endTime time.Time, startKey, endKey string, base
 	}
 	return matrix.CreatePlane(times, axes)
 }
+
+// Keys returns all strings interned in KeyMap.
+func (s *Stat) Keys() []string {
+	s.keyMap.RLock()
+	defer s.keyMap.RUnlock()
+	return s.keyMap.Keys()
+}
